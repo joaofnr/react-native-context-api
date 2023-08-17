@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native';
-import Constants from 'expo-constants';
 
 export const estilos = (tema) => {
   return StyleSheet.create({
@@ -45,4 +44,4 @@ export const estilos = (tema) => {
       color: tema.preto,
     }
   });
-}
+};

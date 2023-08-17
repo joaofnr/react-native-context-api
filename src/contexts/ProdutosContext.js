@@ -1,64 +1,52 @@
-import { createContext, useState, useEffect } from "react";
-import { pegarProdutos, salvarProduto, removerProduto } from "../servicos/requisicoes/produtos";
+import { createContext, useEffect } from "react";
+import { useState } from "react";
+import { postProduto, getProdutos, deleteProdutos } from "../servicos/requisicoes/produtos";
+import { Alert } from "react-native";
 
 export const ProdutosContext = createContext({});
 
-export function ProdutosProvider({ children }) {
+export function ProdutosProvider({children}){
     const [quantidade, setQuantidade] = useState(0);
-    const [ultimosVistos, setUltimosVistos] = useState([]);
     const [carrinho, setCarrinho] = useState([]);
-    const [precoTotal, setPrecoTotal] = useState(0);
-
-    useEffect( async () => {
-        const resultado = await pegarProdutos();
-        if(resultado.length > 0){
-            setCarrinho(resultado);
-            setQuantidade(resultado.length);
+    const [ultimosVistos, setUltimosVistos] = useState([]);
+    
+    useEffect(() => {
+        async function getProdutosCart(){
+            const produtos = await getProdutos();
+            setCarrinho(produtos)
+            setQuantidade(produtos.length)
         }
-    },[])
+        getProdutosCart();
+    }, []);
+    
 
-    async function viuProduto(produto) {
-        const resultado = await salvarProduto(produto);
-        const novoItemCarinho = [...carrinho, resultado];
-        setCarrinho(novoItemCarinho);
-        
-        let novoUltimosVistos = new Set(ultimosVistos);
-        novoUltimosVistos.add(produto);
-        setUltimosVistos([...novoUltimosVistos]);
-
+    async function adicionarProduto(produto){
         setQuantidade(quantidade + 1);
-        let novoPrecoTotal = precoTotal + produto.preco;
-        setPrecoTotal(novoPrecoTotal);
+        const addProduto = await postProduto(produto);
+        let novoCarrinho = carrinho;
+        novoCarrinho.push(addProduto);
+
+        let novosUltimosVistos = new Set(ultimosVistos);
+        novosUltimosVistos.add(produto);
+        setUltimosVistos([...novosUltimosVistos]);
+
     }
 
-    async function finalizarCompra() {
-        // para cada item nos ultimos vistos, apagar do banco de dados usando o removerProduto
-        try {
-            carrinho.forEach(async produto => {
-                await removerProduto(produto);
-            })
-            setQuantidade(0);
-            setPrecoTotal(0);
-            setCarrinho([]);
-            return 'Compra finalizada com sucesso!';
+    async function deletarProdutos(){
+        const deleteProd = await deleteProdutos();
+        if(deleteProd === null){
+            Alert.alert("Erro ao deletar produtos");
+            return;
         }
-        catch(erro) {
-            return 'Erro ao finalizar a compra, tente novamente!';
-        }
+        setQuantidade(0);
+        setCarrinho([]);
     }
 
-    return (
-        <ProdutosContext.Provider
-            value={{
-                quantidade,
-                ultimosVistos,
-                precoTotal,
-                carrinho,
-                viuProduto,
-                finalizarCompra,
-            }}
-        >
+    return(
+        <ProdutosContext.Provider value={{
+            quantidade, carrinho, ultimosVistos, adicionarProduto, deletarProdutos
+        }}>
             {children}
         </ProdutosContext.Provider>
-    );
+    )
 }

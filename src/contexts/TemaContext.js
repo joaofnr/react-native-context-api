@@ -1,38 +1,40 @@
-import { createContext, useState, useEffect } from "react";
-import { escuro, claro } from "../estilosGlobais";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { createContext, useEffect, useState } from "react";
+import { dark, light } from "../estilosGlobais";
 export const TemaContext = createContext({});
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export function TemaProvider({ children }) {
-    const [tema, setTema] = useState("escuro");
+export function TemaProvider({children}){
+
+    const [temaAtual, setTemaAtual] = useState("dark");
 
     const temas = {
-        'escuro': escuro,
-        'claro': claro
+        'dark': dark,
+        'light': light,
     }
 
-    useEffect( async () => {
-        const tema = await AsyncStorage.getItem("@tema");
-        if(tema){
-            setTema(tema);
+    async function salvarTema(tema){
+        await AsyncStorage.setItem("tema", tema);
+        setTemaAtual(tema);
+    }
+
+    useEffect(() => {
+        async function carregarTema(){
+            const tema = await AsyncStorage.getItem("tema");
+            if(tema) {
+                setTemaAtual(tema)
+            }
         }
-    },[])
+        carregarTema();
+    }, [])
 
-    async function setTemaAtual(tema){
-        await AsyncStorage.setItem("@tema", tema);
-        setTema(tema);
-    }
-
-    return (
-        <TemaContext.Provider
-            value={{
-                tema,
-                temas: temas[tema],
-                setTemaAtual,
-            }}
-        >
+    return(
+        <TemaContext.Provider value={{
+            temaAtual, 
+            setTemaAtual, 
+            temaEscolhido: temas[temaAtual],
+            salvarTema
+        }}>
             {children}
         </TemaContext.Provider>
-    );
+    )
 }
